@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LandslideWatch | Login</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body class="auth-body">
+  <div class="auth-card">
+    <div class="brand center">
+      <div class="logo">▲</div>
+      <span>Landslide<span>Watch</span></span>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Login</button>
+      <button class="auth-tab" data-tab="register">Register</button>
+    </div>
+
+    <form id="loginForm" class="auth-form">
+      <label>Email</label>
+      <input type="email" id="loginEmail" required placeholder="you@example.com" />
+      <label>Password</label>
+      <input type="password" id="loginPassword" required placeholder="••••••••" />
+      <button type="submit">Log In</button>
+      <p class="auth-error" id="loginError"></p>
+    </form>
+
+    <form id="registerForm" class="auth-form hidden">
+      <label>Name</label>
+      <input type="text" id="regName" required placeholder="Your name" />
+      <label>Email</label>
+      <input type="email" id="regEmail" required placeholder="you@example.com" />
+      <label>Password</label>
+      <input type="password" id="regPassword" required placeholder="Minimum 8 characters" />
+      <button type="submit">Create Account</button>
+      <p class="auth-error" id="registerError"></p>
+    </form>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="auth.js"></script>
+</body>
+</html>

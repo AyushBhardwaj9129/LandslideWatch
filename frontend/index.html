@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LandslideWatch | Early Warning System</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">▲</div>
+        <span>Landslide<span>Watch</span></span>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="home">⌂ <span>Home</span></button>
+        <button class="nav-item" data-view="map">◈ <span>Map</span></button>
+        <button class="nav-item" data-view="forecast">⌁ <span>Forecast</span></button>
+        <button class="nav-item" data-view="routes">▰ <span>Routes</span></button>
+        <button class="nav-item" data-view="shelters">⌂ <span>Shelters</span></button>
+        <button class="nav-item" data-view="history">↶ <span>History</span></button>
+      </nav>
+
+      <div class="side-section">
+        <p>Emergency Alerts</p>
+        <button 
+  class="alert-link"
+  id="earlyWarningsBtn"
+  data-view="home"
+  data-scroll="alertsPanel"
+>
+  🔔 Early Warnings
+</button>
+        <button class="alert-link danger" data-view="home" data-scroll="alertsPanel">🔺 Current High Risk Alerts</button>
+        <button class="alert-link" data-view="alert-history">☷ Alert History</button>
+      </div>
+
+      <div class="side-section quick-side">
+        <p>Quick Actions</p>
+        <button class="alert-link" id="checkRouteStatusBtn">📍 Check Route Status</button>
+        <button class="alert-link" id="exportBtn">⇩ Export Data Report</button>
+      </div>
+
+      <div class="side-section" style="border-top:1px solid rgba(255,255,255,.08);padding-top:14px;margin-top:4px;">
+        <button class="nav-item" data-view="settings">⚙ <span>Settings</span></button>
+        <button class="nav-item" data-view="about">ⓘ <span>About</span></button>
+      </div>
+
+      <div class="sidebar-footer">▲ <span>Safer Communities<br />Stronger Tomorrow</span></div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <header class="topbar">
+        <button class="menu-btn">☰</button>
+        <div class="search">
+          <select id="locationSelect"></select>
+        </div>
+        <div class="top-actions">
+          <div class="notification-wrap">
+            <button class="bell" id="alertBell">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <span id="alertCount">0</span>
+            </button>
+            <div id="notificationDropdown" class="notification-dropdown">
+              <div class="notification-dropdown-header">
+                <strong>Notifications</strong>
+                <span id="notificationSubtitle">—</span>
+              </div>
+              <div id="notificationList" class="alert-list"></div>
+            </div>
+          </div>
+          <div class="profile-wrap">
+            <button class="profile" id="profileTrigger">
+              <div class="avatar" id="userAvatar">A</div>
+              <div class="profile-text">
+                <strong id="userName">Loading...</strong>
+                <small id="userRole">—</small>
+              </div>
+              <span class="profile-caret">⌄</span>
+            </button>
+            <div id="profileDropdown" class="profile-dropdown">
+              <div class="profile-dropdown-header">
+                <div class="avatar avatar-lg" id="userAvatarLg">A</div>
+                <div>
+                  <strong id="userNameLg">Loading...</strong>
+                  <span id="userEmailLg">—</span>
+                </div>
+              </div>
+              <div class="profile-dropdown-role">
+                Role: <b id="userRoleLg">—</b>
+              </div>
+              <button class="profile-dropdown-logout" id="logoutBtn">
+                ⎋ Sign out
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <section class="content">
+
+        <!-- HOME VIEW -->
+        <div class="view active" id="view-home">
+          <div class="welcome">
+            <div>
+              <h1>Welcome Back!</h1>
+              <p>Real-time monitoring and AI-powered insights for a safer North-East India.</p>
+            </div>
+            <span class="prototype-tag">Live Backend</span>
+          </div>
+
+          <section class="metrics">
+            <article class="metric-card">
+              <div class="metric-icon blue">☁</div>
+              <div><p>Rainfall</p><h2 id="rainfall">-- <span>mm/hr</span></h2></div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-icon green">💧</div>
+              <div><p>Soil Moisture</p><h2 id="soilMoisture">--%</h2></div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-icon orange">♨</div>
+              <div><p>Temperature</p><h2 id="temperature">--°C</h2></div>
+            </article>
+            <article class="metric-card">
+              <div class="metric-icon purple">◕</div>
+              <div><p>Humidity</p><h2 id="humidity">--%</h2></div>
+            </article>
+          </section>
+
+          <section class="dashboard-grid">
+            <article class="panel breakdown">
+              <div class="panel-title"><h3>🧠 AI Risk Breakdown</h3><button id="refreshRisk">Recalculate</button></div>
+              <div class="gauge-wrap">
+
+    <div class="speedometer">
+
+        <svg
+            id="riskMeter"
+            viewBox="0 0 340 235"
+        >
+
+            <defs>
+
+                <linearGradient
+                    id="meterGradient"
+                    x1="0%"
+                    y1="100%"
+                    x2="100%"
+                    y2="0%"
+                >
+                    <stop
+                        offset="0%"
+                        stop-color="#53b8c8"
+                    />
+
+                    <stop
+                        offset="50%"
+                        stop-color="#4d8ddd"
+                    />
+
+                    <stop
+                        offset="100%"
+                        stop-color="#6656d9"
+                    />
+                </linearGradient>
+
+            </defs>
+
+
+            <!-- FULL BACKGROUND ARC -->
+
+            <path
+                class="meter-background"
+                d="M 50 145 A 120 120 0 0 1 290 145"
+            />
+
+
+            <!-- ACTIVE RISK ARC -->
+
+            <path
+                id="riskArc"
+                class="meter-progress"
+                d="M 50 145 A 120 120 0 0 1 290 145"
+                pathLength="100"
+            />
+
+
+            <!-- TICK MARKS -->
+
+            <g class="meter-ticks">
+
+                <line x1="58" y1="145" x2="72" y2="145"/>
+
+                <line x1="82" y1="83" x2="92" y2="91"/>
+
+                <line x1="126" y1="35" x2="130" y2="49"/>
+
+                <line x1="170" y1="25" x2="170" y2="40"/>
+
+                <line x1="214" y1="35" x2="210" y2="49"/>
+
+                <line x1="258" y1="83" x2="248" y2="91"/>
+
+                <line x1="282" y1="145" x2="268" y2="145"/>
+
+            </g>
+
+
+            <!-- NEEDLE -->
+
+            <g id="riskNeedle">
+
+                <line
+                    x1="170"
+                    y1="145"
+                    x2="170"
+                    y2="68"
+                    class="needle"
+                />
+
+                <circle
+                    cx="170"
+                    cy="145"
+                    r="14"
+                    class="needle-base"
+                />
+
+                <circle
+                    cx="170"
+                    cy="145"
+                    r="7"
+                    class="needle-center"
+                />
+
+            </g>
+
+
+            <!-- SCORE -->
+
+            <text
+                id="riskScore"
+                x="170"
+                y="195"
+                text-anchor="middle"
+                class="meter-score"
+            >
+                --
+            </text>
+
+
+            <!-- LABEL -->
+
+            <text
+                id="riskLabel"
+                x="170"
+                y="218"
+                text-anchor="middle"
+                class="meter-label"
+            >
+                CALCULATING
+            </text>
+
+        </svg>
+
+    </div>
+
+</div>
+              <div class="factor-list">
+                <h4>Explanation</h4>
+                <p id="riskExplanation" style="font-size:11px;color:#53626c;padding:6px 0;">Select a location and click Recalculate.</p>
+              </div>
+            </article>
+
+            <article class="panel trend-panel">
+  <div class="panel-title">
+    <h3>📈 Rainfall Trend</h3>
+    <span id="rainfallSourceLabel">Last 24 Hours</span>
+  </div>
+
+  <div class="rainfall-chart-container">
+    <canvas id="rainfallChart"></canvas>
+  </div>
+
+  <div class="chart-labels">
+    <span id="rainfallStart">--</span>
+    <span id="rainfallEnd">--</span>
+  </div>
+</article>
+
+            <article class="panel alerts-panel" id="alertsPanel">
+              <div class="panel-title"><h3>🚨 Current Alerts</h3><button id="viewAllAlerts">View All</button></div>
+              <div id="alertsList" class="alert-list"><p style="font-size:12px;color:#8a97a1;">Loading alerts…</p></div>
+            </article>
+
+            <article class="panel insight-panel">
+              <div class="panel-title"><h3>🏚 Nearby Shelters</h3></div>
+              <div id="shelterPreview"><p style="font-size:12px;color:#8a97a1;">Loading…</p></div>
+              <button class="outline-btn" data-view="shelters">View All Shelters →</button>
+            </article>
+          </section>
+        </div>
+
+        <!-- MAP VIEW -->
+        <div class="view" id="view-map">
+          <div class="welcome"><div><h1>Risk Map</h1><p>Locations, shelters, and roads plotted from live backend data.</p></div></div>
+          <article class="panel">
+            <div id="leafletMap" style="height:520px;border-radius:6px;"></div>
+          </article>
+        </div>
+
+        
+        <!-- FORECAST VIEW -->
+        <div class="view" id="view-forecast">
+
+          <div class="welcome">
+            <div>
+              <h1>Regional Forecast</h1>
+              <p>AI-powered landslide risk forecast for <strong id="forecastLocationLabel">the selected location</strong>.</p>
+            </div>
+
+            <button id="generateForecastBtn" class="forecast-generate-btn">
+              ↻ Refresh Forecast
+            </button>
+          </div>
+
+          <article class="panel regional-forecast-panel">
+
+            <div class="regional-header">
+              <h2>⌁ Upcoming Risk Windows</h2>
+              <span>Projected risk over the next 24 hours</span>
+            </div>
+
+            <!-- Forecast cards will be added here by app.js -->
+            <div class="regional-forecast-grid" id="forecastList">
+              <p style="font-size:13px;color:#8a97a1;">
+                Loading forecast...
+              </p>
+            </div>
+
+          </article>
+
+        </div>
+        <!-- ROUTES VIEW -->
+        <div class="view" id="view-routes">
+          <div class="welcome">
+            <div><h1>Road Status</h1><p>Live road risk levels for the selected location.</p></div>
+          </div>
+          <article class="panel">
+            <div class="panel-title"><h3>▰ Roads</h3><button id="addRoadBtn">+ Add Road</button></div>
+            <div id="roadsList"><p style="font-size:12px;color:#8a97a1;">Loading…</p></div>
+          </article>
+        </div>
+
+        <!-- SHELTERS VIEW -->
+        <div class="view" id="view-shelters">
+          <div class="welcome">
+            <div><h1>Shelters</h1><p>Active shelter locations across the network.</p></div>
+          </div>
+          <article class="panel">
+            <div class="panel-title"><h3>🏚 All Shelters</h3><button id="addShelterBtn">+ Add Shelter</button></div>
+            <div id="sheltersList"><p style="font-size:12px;color:#8a97a1;">Loading…</p></div>
+          </article>
+        </div>
+
+        <!-- ALERT HISTORY VIEW - Northeast India alerts -->
+        <div class="view" id="view-alert-history">
+          <div class="welcome"><div><h1>Alert History</h1><p>Current alerts and past dangerous events across Northeast India.</p></div></div>
+          <article class="panel">
+            <div id="globalAlertsContainer"></div>
+          </article>
+        </div>
+
+        <!-- HISTORY VIEW - User's action records during disasters -->
+        <div class="view" id="view-history">
+          <div class="welcome"><div><h1>Your History</h1><p>Your actions during alerts at <strong id="historyLocation">selected location</strong>. What you did when danger struck.</p></div></div>
+          <article class="panel">
+            <div id="historyList"><p style="font-size:12px;color:#8a97a1;">Select a location to see your action history.</p></div>
+          </article>
+        </div>
+
+        <!-- SETTINGS VIEW -->
+        <div class="view" id="view-settings">
+          <div class="welcome"><div><h1>Settings</h1><p>Account details.</p></div></div>
+          <article class="panel" style="max-width:420px;">
+            <div id="settingsInfo"></div>
+            <button class="outline-btn" id="logoutBtn2">Log Out</button>
+          </article>
+        </div>
+
+        <!-- ABOUT VIEW -->
+        <div class="view about-view" id="view-about">
+          <button class="about-back" data-view="home">← Back to Dashboard</button>
+
+          <div class="about-title">
+            <div class="about-title-icon">ⓘ</div>
+            <div>
+              <h1>About LandslideWatch</h1>
+              <p>Smarter Monitoring. Safer Communities.</p>
+            </div>
+          </div>
+
+          <div class="about-hero">
+            <div class="about-hero-image">
+              <img src="https://images.unsplash.com/photo-1585938389612-a552a28d6914?q=80&w=1200&auto=format&fit=crop" alt="Forested mountain terrain" />
+              <div class="about-hero-overlay">
+                <div class="about-hero-logo">▲</div>
+                <span>LandslideWatch</span>
+              </div>
+            </div>
+            <div class="about-hero-text">
+              <p>LandslideWatch is an AI-powered platform designed to monitor and predict landslide risks in real time. It brings together environmental data, weather conditions and terrain analysis to help communities, authorities and emergency teams stay prepared and make faster, data-driven decisions.</p>
+              <p>By continuously tracking key factors like rainfall, temperature, humidity and soil erosion, the platform identifies areas that are more likely to face landslides before they happen, giving early warnings and actionable insights.</p>
+              <p>Our goal is to make landslide monitoring accessible, understandable and useful — helping to reduce risks, protect lives and build safer communities in vulnerable regions.</p>
+            </div>
+          </div>
+
+          <div class="about-grid">
+            <article class="panel about-calc-panel">
+              <div class="about-panel-heading">
+                <div class="about-panel-icon">▦</div>
+                <div>
+                  <h2>The Risk Calculator</h2>
+                  <p>How We Calculate the Landslide Risk</p>
+                </div>
+              </div>
+              <p class="about-calc-desc">The LandslideWatch Risk Calculator evaluates four key environmental parameters to estimate the likelihood of a landslide at a selected location. Each factor is given a weight based on its relative influence on slope stability.</p>
+
+              <div class="about-factor-grid">
+                <div class="about-factor-card" style="--factor-color:#3a8de0;--factor-tint:#eaf3fc;">
+                  <div class="about-factor-top">
+                    <div class="about-factor-icon">☂</div>
+                    <span class="about-factor-badge" style="background:#fde3e3;color:#c93b3b;">Very High Priority</span>
+                  </div>
+                  <h3>Rainfall</h3>
+                  <div class="about-factor-pct">40%</div>
+                  <p class="about-factor-label">Contribution</p>
+                  <h4>Key factors</h4>
+                  <ul>
+                    <li>Rainfall intensity</li>
+                    <li>Rainfall duration</li>
+                    <li>24-hour / cumulative rainfall</li>
+                    <li>Soil saturation</li>
+                    <li>Pore-water pressure</li>
+                  </ul>
+                  <div class="about-why">
+                    <strong>ⓘ Why it matters</strong>
+                    <p>Heavy and prolonged rainfall saturates the soil, increases pore pressure and reduces slope stability.</p>
+                  </div>
+                </div>
+
+                <div class="about-factor-card" style="--factor-color:#3ba36a;--factor-tint:#eaf7ef;">
+                  <div class="about-factor-top">
+                    <div class="about-factor-icon">🌱</div>
+                    <span class="about-factor-badge" style="background:#fdecd2;color:#c07a17;">High Priority</span>
+                  </div>
+                  <h3>Soil Erosion</h3>
+                  <div class="about-factor-pct">30%</div>
+                  <p class="about-factor-label">Contribution</p>
+                  <h4>Key factors</h4>
+                  <ul>
+                    <li>Topsoil removal</li>
+                    <li>Slope weakening</li>
+                    <li>Loss of vegetation / root support</li>
+                    <li>Surface runoff</li>
+                    <li>Gully formation</li>
+                  </ul>
+                  <div class="about-why">
+                    <strong>ⓘ Why it matters</strong>
+                    <p>Erosion removes soil and support, weakens the slope structure and creates vulnerable areas.</p>
+                  </div>
+                </div>
+
+                <div class="about-factor-card" style="--factor-color:#6c5ce0;--factor-tint:#f0edfc;">
+                  <div class="about-factor-top">
+                    <div class="about-factor-icon">💧</div>
+                    <span class="about-factor-badge" style="background:#ece6fb;color:#6c4fd6;">Medium Priority</span>
+                  </div>
+                  <h3>Humidity</h3>
+                  <div class="about-factor-pct">20%</div>
+                  <p class="about-factor-label">Contribution</p>
+                  <h4>Key factors</h4>
+                  <ul>
+                    <li>Atmospheric moisture level</li>
+                    <li>Persistent wet conditions</li>
+                    <li>Reduced evaporation</li>
+                  </ul>
+                  <div class="about-why">
+                    <strong>ⓘ Why it matters</strong>
+                    <p>High humidity keeps the ground moist for longer and, combined with rainfall, increases susceptibility.</p>
+                  </div>
+                </div>
+
+                <div class="about-factor-card" style="--factor-color:#e08a3a;--factor-tint:#fdf1e6;">
+                  <div class="about-factor-top">
+                    <div class="about-factor-icon">🌡</div>
+                    <span class="about-factor-badge" style="background:#dcedfb;color:#2f7cc9;">Supporting Priority</span>
+                  </div>
+                  <h3>Temperature</h3>
+                  <div class="about-factor-pct">10%</div>
+                  <p class="about-factor-label">Contribution</p>
+                  <h4>Key factors</h4>
+                  <ul>
+                    <li>Temperature variation</li>
+                    <li>Influence on soil moisture</li>
+                    <li>Weathering and material changes</li>
+                  </ul>
+                  <div class="about-why">
+                    <strong>ⓘ Why it matters</strong>
+                    <p>Temperature affects moisture levels and weathering, which can indirectly weaken slopes.</p>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <div class="about-side">
+              <article class="panel about-side-panel">
+                <div class="about-panel-heading">
+                  <div class="about-panel-icon">▦</div>
+                  <h2>Risk Calculation Formula</h2>
+                </div>
+                <div class="about-formula-box">
+                  <strong>Risk Score = (R × 0.40) + (E × 0.30) + (H × 0.20) + (T × 0.10)</strong>
+                  <p class="about-formula-where">Where,</p>
+                  <div class="about-formula-legend">
+                    <span><b>R</b> = Rainfall</span>
+                    <span><b>E</b> = Soil Erosion</span>
+                    <span><b>H</b> = Humidity</span>
+                    <span><b>T</b> = Temperature</span>
+                  </div>
+                  <p class="about-formula-note">(Each factor is normalized to a 0–100 score)</p>
+                </div>
+              </article>
+
+              <article class="panel about-side-panel">
+                <div class="about-panel-heading">
+                  <div class="about-panel-icon">📖</div>
+                  <h2>Risk Priority Order</h2>
+                </div>
+                <div class="about-priority-list">
+                  <div class="about-priority-row">
+                    <span class="about-priority-num">01</span>
+                    <span class="about-priority-icon">☂</span>
+                    <div class="about-priority-text"><b>Rainfall</b><small>40%</small></div>
+                    <span class="about-factor-badge" style="background:#fde3e3;color:#c93b3b;">Very High</span>
+                  </div>
+                  <div class="about-priority-row">
+                    <span class="about-priority-num">02</span>
+                    <span class="about-priority-icon">🌱</span>
+                    <div class="about-priority-text"><b>Soil Erosion</b><small>30%</small></div>
+                    <span class="about-factor-badge" style="background:#fdecd2;color:#c07a17;">High</span>
+                  </div>
+                  <div class="about-priority-row">
+                    <span class="about-priority-num">03</span>
+                    <span class="about-priority-icon">💧</span>
+                    <div class="about-priority-text"><b>Humidity</b><small>20%</small></div>
+                    <span class="about-factor-badge" style="background:#ece6fb;color:#6c4fd6;">Medium</span>
+                  </div>
+                  <div class="about-priority-row">
+                    <span class="about-priority-num">04</span>
+                    <span class="about-priority-icon">🌡</span>
+                    <div class="about-priority-text"><b>Temperature</b><small>10%</small></div>
+                    <span class="about-factor-badge" style="background:#dcedfb;color:#2f7cc9;">Supporting</span>
+                  </div>
+                </div>
+              </article>
+
+              <article class="panel about-side-panel">
+                <div class="about-panel-heading">
+                  <div class="about-panel-icon">◈</div>
+                  <h2>Risk Level</h2>
+                </div>
+                <p class="about-calc-desc">The final risk score is converted into a risk level.</p>
+                <div class="about-level-grid">
+                  <div class="about-level-chip" style="background:#e8f6ee;color:var(--low);">0–25<br />Low</div>
+                  <div class="about-level-chip" style="background:#fdf3e0;color:#b8860f;">26–50<br />Moderate</div>
+                  <div class="about-level-chip" style="background:#fdeade;color:var(--high);">51–75<br />High</div>
+                  <div class="about-level-chip" style="background:#fbe3e4;color:var(--critical);">76–100<br />Very High</div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+<!-- High Risk Alerts Popup -->
+<div id="highRiskModal" class="high-risk-modal">
+  <div class="high-risk-modal-content">
+
+    <div class="high-risk-modal-header">
+      <div>
+        <h2>🚨 Current High Risk Alerts</h2>
+        <p>High and critical risk alerts for the selected location</p>
+      </div>
+
+      <button id="closeHighRiskModal" class="close-modal-btn">×</button>
+    </div>
+
+    <div id="highRiskAlertsList">
+      <p>Loading alerts...</p>
+    </div>
+
+  </div>
+</div>
+  <div id="toast" class="toast">Updated</div>
+
+  <!-- AI Assistant Widget: navigates the app and answers quick safety FAQs -->
+  <div id="assistantWidget" class="assistant-widget">
+    <button id="assistantToggle" class="assistant-toggle" aria-label="Open assistant" title="Ask the assistant">
+      💬
+      <span class="assistant-toggle-dot"></span>
+    </button>
+
+    <div id="assistantPanel" class="assistant-panel">
+      <div class="assistant-header">
+        <div class="assistant-header-title">
+          <span class="assistant-avatar">▲</span>
+          LandslideWatch Assistant
+        </div>
+        <button id="assistantClose" class="assistant-close" aria-label="Close assistant">×</button>
+      </div>
+
+      <div id="assistantMessages" class="assistant-messages"></div>
+      <div id="assistantQuickReplies" class="assistant-quick-replies"></div>
+
+      <form id="assistantForm" class="assistant-input-row">
+        <input id="assistantInput" type="text" placeholder="Ask me anything or tell me what to do…" autocomplete="off" />
+        <button type="submit" class="assistant-send" aria-label="Send">➤</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Generic Alerts Popup (Early Warnings + High Risk Alerts) -->
+  <div id="alertsModal" class="high-risk-modal">
+    <div class="high-risk-modal-content">
+
+      <div class="high-risk-modal-header">
+        <div>
+          <h2 id="alertsModalTitle">🔔 Alerts</h2>
+          <p id="alertsModalSubtitle"></p>
+        </div>
+
+        <button id="closeAlertsModal" class="close-modal-btn">×</button>
+      </div>
+
+      <div id="alertsModalList" class="alert-list">
+        <p>Loading alerts...</p>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Route Status Popup: geolocation-based safety guidance, distinct from the Routes admin view -->
+  <div id="routeStatusModal" class="high-risk-modal">
+    <div class="high-risk-modal-content">
+
+      <div class="high-risk-modal-header">
+        <div>
+          <h2>📍 Route Safety Check</h2>
+          <p>Guidance based on your current location</p>
+        </div>
+
+        <button id="closeRouteStatusModal" class="close-modal-btn">×</button>
+      </div>
+
+      <div id="routeStatusBody">
+        <p style="font-size:13px;color:#8a97a1;">Requesting your location…</p>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+
+  <!-- Alert History & User Action History -->
+  <script>
+    // ============================================
+    // ALERT HISTORY - Northeast India Current & Past Alerts
+    // Dangerous situations that happened
+    // ============================================
+    const NE_INDIA_CURRENT_ALERTS = [
+      {
+        id: "alert_ne_001",
+        region: "Assam",
+        severity: "HIGH",
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        rainfall: 92,
+        forecastRainfall: 120,
+        message: "Heavy rainfall detected. Risk increasing in hilly areas."
+      }
+    ];
+
+    const NE_INDIA_PAST_ALERTS = [
+      {
+        id: "past_ne_001",
+        region: "Mizoram",
+        date: "May 28, 2024",
+        severity: "CRITICAL",
+        deaths: 23,
+        missing: 9,
+        forecast: 185,
+        actual: 185,
+        accuracy: "100%",
+        lesson: "Mining areas need special monitoring. 14-hour warning helped."
+      }
+    ];
+
+    // ============================================
+    // HISTORY - User's Actions During Dangerous Situations
+    // What the user DID when alerts happened at their location
+    // ============================================
+    const USER_ACTION_HISTORY = {
+      "Guwahati Monitoring Zone, Assam": [
+        {
+          date: "2024-03-15",
+          alert: "HIGH RISK Alert",
+          userAction: "Checked location and evacuated family",
+          outcome: "Safe - left area before landslide",
+          time: "14:30"
+        },
+        {
+          date: "2024-02-20",
+          alert: "MEDIUM RISK Alert",
+          userAction: "Prepared emergency supplies and monitored weather",
+          outcome: "Minor mudslides - family remained safe",
+          time: "10:15"
+        }
+      ],
+      "Cherrapunji, Meghalaya": [
+        {
+          date: "2024-05-10",
+          alert: "CRITICAL Alert",
+          userAction: "Followed evacuation orders immediately",
+          outcome: "Successfully evacuated",
+          time: "02:45"
+        }
+      ],
+      "Silchar, Assam": [
+        {
+          date: "2024-06-18",
+          alert: "MEDIUM RISK Alert",
+          userAction: "Stayed informed via app, no evacuation needed",
+          outcome: "False alarm - stayed home",
+          time: "09:20"
+        }
+      ]
+    };
+
+    function getTimeAgo(date) {
+      const seconds = Math.floor((new Date() - date) / 1000);
+      if (seconds < 60) return "just now";
+      if (seconds < 3600) return Math.floor(seconds / 60) + "m ago";
+      if (seconds < 86400) return Math.floor(seconds / 3600) + "h ago";
+      return Math.floor(seconds / 86400) + "d ago";
+    }
+
+    function loadAlertHistory() {
+      const container = document.getElementById("globalAlertsContainer");
+      if (!container) return;
+
+      let html = `<style>
+        .alert-history-section { margin-bottom: 24px; }
+        .section-title { 
+          font-size: 13px; font-weight: 700; color: #1f2937; 
+          margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e5e7eb;
+          text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .alert-card {
+          border-radius: 8px; padding: 14px; margin-bottom: 10px;
+          border-left: 5px solid;
+        }
+        .alert-card.high { border-left-color: #f77f00; background: rgba(247, 127, 0, 0.04); }
+        .alert-card.critical { border-left-color: #e63946; background: rgba(230, 57, 70, 0.04); }
+        .alert-card.medium { border-left-color: #fcbf49; background: rgba(252, 191, 73, 0.04); }
+        .alert-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .alert-region { font-weight: 700; font-size: 13px; color: #1f2937; }
+        .alert-time { font-size: 11px; color: #8a97a1; }
+        .alert-severity { display: inline-block; padding: 3px 8px; border-radius: 3px; font-size: 10px; 
+                         font-weight: 700; color: white; margin-bottom: 6px; }
+        .severity-high { background: #f77f00; }
+        .severity-critical { background: #e63946; }
+        .severity-medium { background: #fcbf49; color: #1f2937; }
+        .alert-message { font-size: 12px; color: #374151; line-height: 1.5; margin: 8px 0; }
+        .alert-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 11px; }
+        .stat { padding: 8px; background: rgba(255,255,255,0.5); border-radius: 4px; }
+        .stat-label { color: #6b7c87; font-weight: 600; }
+        .stat-value { color: #1f2937; font-weight: 700; margin-top: 2px; }
+        .past-card { border-left-color: #94a3b8; background: rgba(148, 163, 184, 0.04); }
+        .past-header { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; font-size: 11px; margin-top: 8px; }
+        .past-item { padding: 8px; background: rgba(255,255,255,0.6); border-radius: 4px; }
+        .past-label { color: #6b7c87; font-weight: 600; margin-bottom: 2px; }
+        .past-value { color: #1f2937; font-weight: 700; }
+        .lesson { padding: 10px; background: rgba(34, 197, 94, 0.05); border-left: 3px solid #22c55e; 
+                 border-radius: 4px; margin-top: 8px; font-size: 11px; color: #1f2937; line-height: 1.5; }
+      </style>`;
+
+      // Current Alerts
+      html += '<div class="alert-history-section"><div class="section-title">🔴 Current Alerts - Northeast India</div>';
+      NE_INDIA_CURRENT_ALERTS.forEach(alert => {
+        const severityClass = alert.severity.toLowerCase();
+        html += `
+          <div class="alert-card ${severityClass}">
+            <div class="alert-header">
+              <span class="alert-region">${alert.region}</span>
+              <span class="alert-time">${getTimeAgo(alert.timestamp)}</span>
+            </div>
+            <span class="alert-severity severity-${severityClass}">${alert.severity}</span>
+            <p class="alert-message">${alert.message}</p>
+            <div class="alert-stats">
+              <div class="stat"><div class="stat-label">Current</div><div class="stat-value">${alert.rainfall}mm</div></div>
+              <div class="stat"><div class="stat-label">Forecast (24h)</div><div class="stat-value">${alert.forecastRainfall}mm</div></div>
+            </div>
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      // Past Events
+      html += '<div class="alert-history-section"><div class="section-title">📊 Past Events - Learning from History</div>';
+      NE_INDIA_PAST_ALERTS.forEach(alert => {
+        html += `
+          <div class="alert-card past-card">
+            <div class="alert-header">
+              <span class="alert-region">${alert.region} - ${alert.date}</span>
+              <span class="alert-severity severity-${alert.severity.toLowerCase()}">${alert.severity}</span>
+            </div>
+            <p class="alert-message"><strong>Impact:</strong> ${alert.deaths} deaths, ${alert.missing} missing</p>
+            <div class="past-header">
+              <div class="past-item">
+                <div class="past-label">Forecast</div>
+                <div class="past-value">${alert.forecast}mm</div>
+              </div>
+              <div class="past-item">
+                <div class="past-label">Actual</div>
+                <div class="past-value">${alert.actual}mm</div>
+              </div>
+              <div class="past-item">
+                <div class="past-label">Accuracy</div>
+                <div class="past-value">${alert.accuracy}</div>
+              </div>
+            </div>
+            <div class="lesson">📌 <strong>Learning:</strong> ${alert.lesson}</div>
+          </div>
+        `;
+      });
+      html += '</div>';
+
+      container.innerHTML = html;
+    }
+
+    function loadPredictionHistory() {
+      const locationSelect = document.getElementById("locationSelect");
+      const selectedLocation = locationSelect ? locationSelect.value : "Guwahati Monitoring Zone, Assam";
+      
+      const container = document.getElementById("historyList");
+      const titleEl = document.getElementById("historyLocation");
+      if (!container) return;
+
+      if (titleEl) titleEl.textContent = selectedLocation;
+
+      const history = USER_ACTION_HISTORY[selectedLocation] || [];
+
+      if (history.length === 0) {
+        container.innerHTML = '<p style="color:#8a97a1;font-size:12px;">No action history for this location yet.</p>';
+        return;
+      }
+
+      let html = `<style>
+        .action-item {
+          border: 1px solid #e5e7eb; border-radius: 6px; padding: 14px; margin-bottom: 10px;
+          background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%);
+          border-left: 4px solid #4facfe;
+        }
+        .action-date { font-weight: 700; color: #1f2937; margin-bottom: 4px; font-size: 13px; }
+        .action-time { font-size: 11px; color: #8a97a1; margin-bottom: 8px; }
+        .action-alert { display: inline-block; padding: 4px 8px; border-radius: 3px; font-size: 10px; 
+                       font-weight: 700; background: #fff3cd; color: #856404; margin-bottom: 8px; }
+        .action-what { font-size: 12px; color: #374151; line-height: 1.5; margin: 8px 0; }
+        .action-label { color: #6b7c87; font-weight: 600; font-size: 11px; }
+        .action-text { color: #1f2937; font-weight: 500; margin-top: 2px; }
+        .action-outcome { padding: 8px 12px; background: #f0fdf4; border-left: 3px solid #22c55e; 
+                         border-radius: 3px; margin-top: 8px; font-size: 12px; color: #1f2937; }
+      </style>`;
+
+      history.forEach(item => {
+        html += `
+          <div class="action-item">
+            <div class="action-date">${item.date}</div>
+            <div class="action-time">⏰ ${item.time}</div>
+            <span class="action-alert">${item.alert}</span>
+            <div style="margin-top: 8px;">
+              <div class="action-label">What You Did:</div>
+              <div class="action-text">${item.userAction}</div>
+            </div>
+            <div class="action-outcome">✓ ${item.outcome}</div>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadAlertHistory();
+      loadPredictionHistory();
+      
+      // Reload history when location changes
+      const locationSelect = document.getElementById("locationSelect");
+      if (locationSelect) {
+        locationSelect.addEventListener("change", loadPredictionHistory);
+      }
+    });
+  </script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script src="app.js?v=7"></script>
+<script src="assistant.js?v=1"></script>
+</body>
+</html>
